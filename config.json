@@ -1,0 +1,45 @@
+{
+  "data_dir": "data",
+  "library_file": "library.json",
+  "cache_dir": "cache",
+  "window_width": 1200,
+  "window_height": 800,
+  "splitter_left_width": 300,
+  "media_player_height": 150,
+  "auto_save": true,
+  "auto_backup": true,
+  "backup_count": 5,
+  "document_formats": [
+    ".pdf",
+    ".txt",
+    ".doc",
+    ".docx",
+    ".odt",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".bmp"
+  ],
+  "audio_formats": [
+    ".mp3",
+    ".wav",
+    ".flac",
+    ".ogg",
+    ".m4a",
+    ".aac",
+    ".wma"
+  ],
+  "video_formats": [
+    ".mp4",
+    ".avi",
+    ".mov",
+    ".mkv",
+    ".wmv",
+    ".flv",
+    ".webm"
+  ],
+  "cloud_sync": false,
+  "cloud_provider": "",
+  "theme": "default"
+}
