@@ -6,6 +6,8 @@
   "window_height": 800,
   "splitter_left_width": 300,
   "media_player_height": 150,
+  "library_height": 400,
+  "player_height": 300,
   "auto_save": true,
   "auto_backup": true,
   "backup_count": 5,

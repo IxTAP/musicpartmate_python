@@ -4,7 +4,7 @@ Widget pour la lecture de médias audio et vidéo avec fallback - Version nettoy
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, 
-    QLabel, QFrame, QComboBox, QStyle, QMessageBox
+    QLabel, QFrame, QComboBox, QStyle, QMessageBox, QSplitter
 )
 from PySide6.QtCore import Qt, QUrl, QTimer, Signal
 from pathlib import Path
@@ -118,35 +118,16 @@ class MediaPlayer(QWidget):
     def setup_full_ui(self):
         """Configure l'interface complète du lecteur"""
         layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         layout.setContentsMargins(5, 5, 5, 5)
         
-        # Zone vidéo (masquée par défaut)
-        self.video_frame = QFrame()
-        self.video_frame.setFrameStyle(QFrame.Shape.StyledPanel)
-        self.video_frame.setMinimumHeight(200)
-        video_layout = QVBoxLayout(self.video_frame)
-        video_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Message pour la zone vidéo
-        self.video_placeholder = QLabel("📺 Zone vidéo\n(s'active lors de la lecture)")
-        self.video_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.video_placeholder.setStyleSheet("color: #999; font-size: 12px;")
-        video_layout.addWidget(self.video_placeholder)
-        
-        if hasattr(self, 'video_widget'):
-            video_layout.addWidget(self.video_widget)
-            self.video_widget.hide()  # Masqué au départ
-        
-        self.video_frame.hide()
-        layout.addWidget(self.video_frame)
-        
-        # Informations sur le média
+        # Informations sur le média (toujours en haut)
         self.info_label = QLabel("🎵 Aucun média chargé")
         self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.info_label.setStyleSheet("color: #666; font-size: 12px;")
         layout.addWidget(self.info_label)
         
-        # Contrôles principaux
+        # Contrôles principaux (TOUJOURS VISIBLES)
         controls_layout = QHBoxLayout()
         
         # Boutons de contrôle
@@ -175,7 +156,7 @@ class MediaPlayer(QWidget):
         
         layout.addLayout(controls_layout)
         
-        # Contrôles secondaires
+        # Contrôles secondaires (TOUJOURS VISIBLES)
         secondary_controls = QHBoxLayout()
         
         # Volume
@@ -189,13 +170,13 @@ class MediaPlayer(QWidget):
         secondary_controls.addWidget(self.volume_slider)
         
         # Bouton externe (fallback)
-        self.external_button = QPushButton("📱 Ouvrir externe")
+        self.external_button = QPushButton("📱 Externe")
         self.external_button.hide()
         self.external_button.clicked.connect(self.open_external)
         secondary_controls.addWidget(self.external_button)
         
         # Bouton pour forcer l'affichage vidéo
-        self.force_video_button = QPushButton("🎬 Forcer vidéo")
+        self.force_video_button = QPushButton("🎬 Forcer")
         self.force_video_button.hide()
         self.force_video_button.clicked.connect(self.force_video_display)
         secondary_controls.addWidget(self.force_video_button)
@@ -203,16 +184,36 @@ class MediaPlayer(QWidget):
         secondary_controls.addStretch()
         
         # Bouton YouTube
-        self.youtube_button = QPushButton("🌐 Ouvrir sur YouTube")
+        self.youtube_button = QPushButton("🌐 YouTube")
         self.youtube_button.hide()
         self.youtube_button.clicked.connect(self.open_youtube_url)
         secondary_controls.addWidget(self.youtube_button)
         
         layout.addLayout(secondary_controls)
         
-        # Régler la hauteur flexible
-        self.setMinimumHeight(150)
-        self.setMaximumHeight(400)  # Permettre l'expansion pour la vidéo
+        # Zone vidéo EN BAS (pour ne pas masquer les contrôles)
+        self.video_frame = QFrame()
+        self.video_frame.setFrameStyle(QFrame.Shape.StyledPanel)
+        self.video_frame.setMinimumHeight(250)  # Hauteur minimum
+        video_layout = QVBoxLayout(self.video_frame)
+        video_layout.setContentsMargins(2, 2, 2, 2)
+        
+        # Message pour la zone vidéo
+        self.video_placeholder = QLabel("📺 Zone vidéo")
+        self.video_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.video_placeholder.setStyleSheet("color: #999; font-size: 11px;")
+        video_layout.addWidget(self.video_placeholder)
+        
+        if hasattr(self, 'video_widget'):
+            video_layout.addWidget(self.video_widget)
+            self.video_widget.hide()  # Masqué au départ
+        
+        #self.video_frame.hide()
+        layout.addWidget(self.video_frame)
+        
+        # Hauteur fixe pour éviter l'expansion incontrôlée
+        self.setMinimumHeight(120)
+        self.setMaximumHeight(300)  # Limite raisonnable
     
     def setup_connections(self):
         """Configure les connexions de signaux pour le lecteur complet"""
@@ -259,7 +260,7 @@ class MediaPlayer(QWidget):
                 self.setup_video_display()
             else:
                 self.is_video = False
-                self.hide_video_display()
+                #self.hide_video_display()
             
             # Charger le média
             media_url = QUrl.fromLocalFile(str(file_path.absolute()))
@@ -302,8 +303,11 @@ class MediaPlayer(QWidget):
             self.video_placeholder.hide()
             self.video_widget.show()
             
-            # Ajuster la taille du lecteur pour la vidéo
-            self.setMaximumHeight(500)
+            # Hauteur modérée pour ne pas masquer les contrôles
+            #self.setMaximumHeight(280)  # Plus conservateur
+            
+            # Signaler au parent de réajuster
+            self.request_video_layout_adjustment()
             
             print("🎬 Affichage vidéo configuré")
             
@@ -319,8 +323,52 @@ class MediaPlayer(QWidget):
         if hasattr(self, 'media_player'):
             self.media_player.setVideoOutput(None)
         
-        # Réduire la taille pour l'audio
+        # Revenir à la taille compacte
         self.setMaximumHeight(150)
+        
+        # Signaler au parent de réajuster
+        self.request_audio_layout_adjustment()
+    
+    def request_video_layout_adjustment(self):
+        """Demande au parent de réajuster pour la vidéo"""
+        # Délai pour laisser le temps au widget de se redimensionner
+        # QTimer.singleShot(100, self._do_video_layout_adjustment)
+    
+    def _do_video_layout_adjustment(self):
+        """Effectue l'ajustement de layout pour la vidéo"""
+        parent = self.parent()
+        while parent and not isinstance(parent, QSplitter):
+            parent = parent.parent()
+        
+        if parent and isinstance(parent, QSplitter):
+            current_sizes = parent.sizes()
+            if len(current_sizes) == 2:
+                total = sum(current_sizes)
+                # 50% pour l'arbre, 50% pour le lecteur vidéo
+                new_library_size = total // 2
+                new_player_size = total // 2
+                parent.setSizes([new_library_size, new_player_size])
+                print("📐 Proportions ajustées pour la vidéo")
+    
+    def request_audio_layout_adjustment(self):
+        """Demande au parent de réajuster pour l'audio"""
+        QTimer.singleShot(100, self._do_audio_layout_adjustment)
+    
+    def _do_audio_layout_adjustment(self):
+        """Effectue l'ajustement de layout pour l'audio"""
+        parent = self.parent()
+        while parent and not isinstance(parent, QSplitter):
+            parent = parent.parent()
+        
+        if parent and isinstance(parent, QSplitter):
+            current_sizes = parent.sizes()
+            if len(current_sizes) == 2:
+                total = sum(current_sizes)
+                # 75% pour l'arbre, 25% pour le lecteur audio
+                new_library_size = int(total * 0.75)
+                new_player_size = int(total * 0.25)
+                parent.setSizes([new_library_size, new_player_size])
+                print("📐 Proportions ajustées pour l'audio")
     
     def force_video_display(self):
         """Force la réinitialisation de l'affichage vidéo"""

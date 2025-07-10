@@ -216,8 +216,8 @@ class SearchWidget(QWidget):
         layout.addWidget(self.clear_button)
         
         # IMPORTANT: Limiter la hauteur du widget
-        self.setMaximumHeight(30)  # Hauteur fixe
-        self.setMinimumHeight(30)  # Hauteur minimum
+        self.setMaximumHeight(40)  # Hauteur fixe
+        self.setMinimumHeight(40)  # Hauteur minimum
     
     def on_search_changed(self):
         """Appelé quand la recherche change"""
@@ -261,7 +261,8 @@ class MainWindow(QMainWindow):
         # Configurer la fenêtre
         self.setWindowTitle("MusicPartMate")
         config = config_manager.config
-        self.setGeometry(50, 50, config.window_width, config.window_height)
+        #self.setGeometry(100, 100, config.window_width, config.window_height)
+        self.showMaximized()
     
     def setup_ui(self):
         """Configure l'interface utilisateur principale"""
@@ -289,13 +290,14 @@ class MainWindow(QMainWindow):
         right_panel = self.create_content_panel()
         main_splitter.addWidget(right_panel)
         
-        # Proportions
+        # PROPORTIONS MODIFIÉES : Panel gauche plus large pour la zone vidéo
         config = config_manager.config
-        main_splitter.setSizes([config.splitter_left_width, 
-                               config.window_width - config.splitter_left_width])
+        left_width = 500  # AUGMENTÉ de 400 à 500 pour la zone vidéo
+        right_width = config.window_width - left_width
+        main_splitter.setSizes([left_width, right_width])
     
     def create_library_panel(self):
-        """Crée le panel de la bibliothèque"""
+        """Crée le panel de la bibliothèque avec lecteur média intégré - ZONE VIDÉO AGRANDIE"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
@@ -304,36 +306,62 @@ class MainWindow(QMainWindow):
         title_label.setStyleSheet("font-weight: bold; font-size: 14px; padding: 5px;")
         layout.addWidget(title_label)
         
-        # Arbre des chansons
+        # Splitter vertical pour séparer arbre et lecteur
+        left_splitter = QSplitter(Qt.Orientation.Vertical)
+        layout.addWidget(left_splitter)
+        
+        # Arbre des chansons (partie haute) - RÉDUITE
         self.library_tree = LibraryTreeWidget()
-        layout.addWidget(self.library_tree)
+        left_splitter.addWidget(self.library_tree)
+        
+        # Lecteur média (partie basse) avec titre - AGRANDIE
+        media_frame = QFrame()
+        media_layout = QVBoxLayout(media_frame)
+        media_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        media_layout.setContentsMargins(0, 5, 0, 0)
+        
+        # Titre du lecteur
+        media_title_label = QLabel("🎵🎬 Lecteur Audio/Vidéo")
+        media_title_label.setStyleSheet("font-weight: bold; font-size: 12px; padding: 5px;")
+        media_layout.addWidget(media_title_label)
+        
+        # Le lecteur lui-même - VOTRE CODE ORIGINAL GARDÉ
+        self.media_player = MediaPlayer()
+        
+        # MODIFICATION IHM : Forcer une hauteur plus grande pour la zone vidéo
+        self.media_player.setMinimumHeight(300)  # Plus haut que l'original
+        self.media_player.setMaximumHeight(450)  # Zone vidéo plus grande
+        
+        media_layout.addWidget(self.media_player)
+        
+        left_splitter.addWidget(media_frame)
+        
+        # Stocker la référence au splitter pour les ajustements de layout
+        self.left_splitter = left_splitter
+        
+        # NOUVELLES PROPORTIONS : Plus d'espace pour le lecteur vidéo
+        # library_height = 300   # RÉDUIT de 400 à 300 (bibliothèque plus compacte)
+        # player_height = 400    # AUGMENTÉ de 300 à 400 (zone vidéo plus grande)
+        
+        # left_splitter.setSizes([library_height, player_height])
+
+        self.adjust_layout_for_video()
         
         return widget
     
     def create_content_panel(self):
-        """Crée le panel de contenu"""
+        """Crée le panel de contenu (seulement le viewer de documents)"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        # Splitter vertical
-        content_splitter = QSplitter(Qt.Orientation.Vertical)
-        layout.addWidget(content_splitter)
+        # Titre de la zone document
+        doc_title_label = QLabel("📄 Zone Document")
+        doc_title_label.setStyleSheet("font-weight: bold; font-size: 14px; padding: 5px;")
+        layout.addWidget(doc_title_label)
         
-        # Viewer de documents
+        # Viewer de documents (prend tout l'espace)
         self.document_viewer = DocumentViewer()
-        content_splitter.addWidget(self.document_viewer)
-        
-        # Lecteur média
-        self.media_player = MediaPlayer()
-        self.media_player.setMaximumHeight(config_manager.config.media_player_height)
-        content_splitter.addWidget(self.media_player)
-        
-        # Proportions
-        config = config_manager.config
-        content_splitter.setSizes([
-            config.window_height - config.media_player_height,
-            config.media_player_height
-        ])
+        layout.addWidget(self.document_viewer)
         
         return widget
     
@@ -461,6 +489,41 @@ class MainWindow(QMainWindow):
         
         # Lecteur média
         self.media_player.media_loaded.connect(self.on_media_loaded)
+        
+        # Connexions pour les ajustements de layout vidéo
+        if hasattr(self.media_player, 'playback_started'):
+            self.media_player.playback_started.connect(self.on_playback_started)
+        if hasattr(self.media_player, 'playback_stopped'):
+            self.media_player.playback_stopped.connect(self.on_playback_stopped)
+    
+    def on_playback_started(self):
+        """Appelé quand la lecture démarre - ajuste le layout si vidéo"""
+        if hasattr(self.media_player, 'is_video') and self.media_player.is_video:
+            self.adjust_layout_for_video()
+    
+    def on_playback_stopped(self):
+        """Appelé quand la lecture s'arrête - remet le layout audio"""
+        self.adjust_layout_for_audio()
+    
+    def adjust_layout_for_video(self):
+        """Ajuste le layout pour l'affichage vidéo"""
+        if hasattr(self, 'left_splitter'):
+            # Plus d'espace pour le lecteur vidéo
+            config = config_manager.config
+            video_library_height = max(150, config.library_height - 200)  # Réduire biblio
+            video_player_height = config.player_height + 200              # Agrandir lecteur
+            
+            self.left_splitter.setSizes([video_library_height, video_player_height])
+            print(f"📐 Layout vidéo: biblio={video_library_height}, lecteur={video_player_height}")
+    
+    def adjust_layout_for_audio(self):
+        self.adjust_layout_for_video()
+        """Ajuste le layout pour l'audio seulement"""
+        # if hasattr(self, 'left_splitter'):
+        #     # Revenir aux proportions normales
+        #     config = config_manager.config
+        #     self.left_splitter.setSizes([config.library_height, config.player_height])
+        #     print(f"📐 Layout audio: biblio={config.library_height}, lecteur={config.player_height}")
     
     def load_library(self):
         """Charge la bibliothèque dans l'interface"""
@@ -511,6 +574,13 @@ class MainWindow(QMainWindow):
             self.document_viewer.load_document(file_path)
         elif media_type in ["audio", "video"]:
             self.media_player.load_media(file_path)
+            
+            # Ajuster le layout en fonction du type de média
+            if media_type == "video":
+                # Délai pour laisser le temps au lecteur de se configurer
+                QTimer.singleShot(500, self.adjust_layout_for_video)
+            else:
+                self.adjust_layout_for_audio()
         
         self.status_label.setText(f"Média chargé: {file_path.name}")
     

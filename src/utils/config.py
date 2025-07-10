@@ -18,10 +18,14 @@ class AppConfig:
     cache_dir: str = "cache"
     
     # Interface
-    window_width: int = 1200
-    window_height: int = 800
-    splitter_left_width: int = 300
-    media_player_height: int = 150
+    window_width: int = 1300        # AUGMENTÉ de 1200 à 1300
+    window_height: int = 900        # AUGMENTÉ de 800 à 900
+    splitter_left_width: int = 500  # AUGMENTÉ de 400 à 500 pour la zone vidéo
+    media_player_height: int = 400  # AUGMENTÉ de 180 à 400
+    
+    # Répartition du panel gauche (bibliothèque vs lecteur)
+    library_height: int = 300       # RÉDUIT de 400 à 300
+    player_height: int = 400        # AUGMENTÉ de 300 à 400
     
     # Fonctionnalités
     auto_save: bool = True
