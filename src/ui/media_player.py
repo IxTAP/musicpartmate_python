@@ -307,7 +307,7 @@ class MediaPlayer(QWidget):
             #self.setMaximumHeight(280)  # Plus conservateur
             
             # Signaler au parent de réajuster
-            self.request_video_layout_adjustment()
+            #self.request_video_layout_adjustment()
             
             print("🎬 Affichage vidéo configuré")
             
@@ -324,10 +324,10 @@ class MediaPlayer(QWidget):
             self.media_player.setVideoOutput(None)
         
         # Revenir à la taille compacte
-        self.setMaximumHeight(150)
+        #self.setMaximumHeight(150)
         
         # Signaler au parent de réajuster
-        self.request_audio_layout_adjustment()
+        #self.request_audio_layout_adjustment()
     
     def request_video_layout_adjustment(self):
         """Demande au parent de réajuster pour la vidéo"""
