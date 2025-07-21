@@ -4,6 +4,9 @@ PySide6==6.6.0
 PySide6-Addons==6.6.0  # Pour le support multimédia complet
 PySide6-Essentials==6.6.0  # Composants essentiels
 
+# NumPy - Version compatible avec PySide6 6.6.0
+numpy<2.0.0
+
 # Traitement de documents
 PyMuPDF>=1.23.0  # Pour les PDF
 python-docx>=0.8.11  # Pour les fichiers Word
