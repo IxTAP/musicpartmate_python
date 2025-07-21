@@ -130,19 +130,6 @@ class MediaPlayer(QWidget):
         # Contrôles principaux (TOUJOURS VISIBLES)
         controls_layout = QHBoxLayout()
         
-        # Boutons de contrôle
-        self.play_button = QPushButton()
-        self.play_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
-        self.play_button.setEnabled(False)
-        self.play_button.clicked.connect(self.play_pause)
-        controls_layout.addWidget(self.play_button)
-        
-        self.stop_button = QPushButton()
-        self.stop_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop))
-        self.stop_button.setEnabled(False)
-        self.stop_button.clicked.connect(self.stop)
-        controls_layout.addWidget(self.stop_button)
-        
         # Slider de position
         self.position_slider = QSlider(Qt.Orientation.Horizontal)
         self.position_slider.setEnabled(False)
@@ -159,6 +146,19 @@ class MediaPlayer(QWidget):
         # Contrôles secondaires (TOUJOURS VISIBLES)
         secondary_controls = QHBoxLayout()
         
+        # Boutons de contrôle
+        self.play_button = QPushButton()
+        self.play_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay))
+        self.play_button.setEnabled(False)
+        self.play_button.clicked.connect(self.play_pause)
+        secondary_controls.addWidget(self.play_button)
+        
+        self.stop_button = QPushButton()
+        self.stop_button.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop))
+        self.stop_button.setEnabled(False)
+        self.stop_button.clicked.connect(self.stop)
+        secondary_controls.addWidget(self.stop_button)
+
         # Volume
         secondary_controls.addWidget(QLabel("🔊"))
         
@@ -171,7 +171,7 @@ class MediaPlayer(QWidget):
         
         # Bouton externe (fallback)
         self.external_button = QPushButton("📱 Externe")
-        self.external_button.hide()
+        #self.external_button.hide()
         self.external_button.clicked.connect(self.open_external)
         secondary_controls.addWidget(self.external_button)
         
@@ -271,8 +271,8 @@ class MediaPlayer(QWidget):
             self.enable_controls(True)
             self.external_button.show()  # Toujours montrer l'option externe
             
-            if self.is_video:
-                self.force_video_button.show()
+            #if self.is_video:
+            #    self.force_video_button.show()
             
             # Émettre le signal
             self.media_loaded.emit(file_path.name)

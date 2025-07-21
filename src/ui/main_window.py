@@ -159,6 +159,14 @@ class LibraryTreeWidget(QTreeWidget):
                     video_child.setData(0, Qt.ItemDataRole.UserRole, ("video", video))
                     video_item.addChild(video_child)
                 song_item.addChild(video_item)
+
+            if song.links:
+                link_item = QTreeWidgetItem(["🎬 Liens"])
+                for lien in song.links:
+                    link_child = QTreeWidgetItem([lien])
+                    link_child.setData(0, Qt.ItemDataRole.UserRole, ("link", lien))
+                    link_item.addChild(link_child)
+                song_item.addChild(link_item)
             
             # Métadonnées
             if song.tempo or song.style or song.metadata:
@@ -357,7 +365,7 @@ class MainWindow(QMainWindow):
         # Titre de la zone document
         doc_title_label = QLabel("📄 Zone Document")
         doc_title_label.setStyleSheet("font-weight: bold; font-size: 14px; padding: 5px;")
-        layout.addWidget(doc_title_label)
+        #layout.addWidget(doc_title_label)
         
         # Viewer de documents (prend tout l'espace)
         self.document_viewer = DocumentViewer()
@@ -572,6 +580,7 @@ class MainWindow(QMainWindow):
         """Appelé quand un média spécifique est sélectionné"""
         if media_type == "document":
             self.document_viewer.load_document(file_path)
+            self.status_label.setText(f"Média chargé: {file_path.name}")
         elif media_type in ["audio", "video"]:
             self.media_player.load_media(file_path)
             
@@ -581,8 +590,12 @@ class MainWindow(QMainWindow):
                 QTimer.singleShot(500, self.adjust_layout_for_video)
             else:
                 self.adjust_layout_for_audio()
-        
-        self.status_label.setText(f"Média chargé: {file_path.name}")
+
+            self.status_label.setText(f"Média chargé: {file_path.name}")    
+        elif media_type == "link":
+            print(f"Média chargé : ${media_type} : ${file_path}")
+            self.media_player.load_youtube_url(file_path, "Nirvana")
+            self.status_label.setText(f"Média chargé: {file_path}")
     
     def on_search_requested(self, query: str, filter_type: str):
         """Appelé quand une recherche est demandée"""

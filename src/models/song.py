@@ -29,6 +29,7 @@ class Song:
     documents: List[Path] = field(default_factory=list)
     audios: List[Path] = field(default_factory=list)
     videos: List[Path] = field(default_factory=list)
+    links: List[str] = field(default_factory=list)
     
     # Métadonnées supplémentaires extensibles
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -43,6 +44,7 @@ class Song:
         self.documents = [Path(p) if isinstance(p, str) else p for p in self.documents]
         self.audios = [Path(p) if isinstance(p, str) else p for p in self.audios]
         self.videos = [Path(p) if isinstance(p, str) else p for p in self.videos]
+        self.links = [str(p) if isinstance(p, str) else p for p in self.links]
     
     @property
     def display_name(self) -> str:
@@ -72,6 +74,11 @@ class Song:
         return len(self.videos) > 0
     
     @property
+    def has_link(self) -> bool:
+        """Vérifie si la chanson a des liens"""
+        return len(self.links) > 0
+    
+    @property
     def primary_document(self) -> Optional[Path]:
         """Retourne le document principal (premier de la liste)"""
         return self.documents[0] if self.documents else None
@@ -90,6 +97,10 @@ class Song:
         """Ajoute un fichier vidéo à la chanson"""
         if file_path not in self.videos:
             self.videos.append(file_path)
+
+    def add_link(self, file_path: str) -> None:
+        """Ajoute une url"""
+        self.links.append(file_path)
     
     def remove_media(self, file_path: Path) -> bool:
         """
@@ -108,6 +119,10 @@ class Song:
         
         if file_path in self.videos:
             self.videos.remove(file_path)
+            removed = True
+
+        if file_path in self.links:
+            self.links.remove(file_path)
             removed = True
         
         return removed
@@ -152,6 +167,7 @@ class Song:
             'documents': [str(doc) for doc in self.documents],
             'audios': [str(audio) for audio in self.audios],
             'videos': [str(video) for video in self.videos],
+            'links': [str(link) for link in self.links],
             'metadata': self.metadata
         }
     
@@ -167,6 +183,7 @@ class Song:
             documents=[Path(doc) for doc in data.get('documents', [])],
             audios=[Path(audio) for audio in data.get('audios', [])],
             videos=[Path(video) for video in data.get('videos', [])],
+            links=[str(link) for link in data.get('links', [])],
             metadata=data.get('metadata', {})
         )
         return song
@@ -189,7 +206,7 @@ class Song:
         """Représentation détaillée pour le debug"""
         return (f"Song(title='{self.title}', artist='{self.artist}', "
                 f"docs={len(self.documents)}, audios={len(self.audios)}, "
-                f"videos={len(self.videos)})")
+                f"videos={len(self.videos)}, links={len(self.links)})")
 
 
 # Fonctions utilitaires pour les chansons

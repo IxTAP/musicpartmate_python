@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, 
     QPushButton, QTextEdit, QListWidget, QListWidgetItem, QSplitter,
     QGroupBox, QFileDialog, QMessageBox, QLabel, QFrame, QTabWidget,
-    QWidget, QScrollArea, QGridLayout
+    QWidget, QScrollArea, QGridLayout, QDialogButtonBox
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap, QIcon
@@ -18,6 +18,51 @@ from ..models.song import Song
 from ..utils.config import config_manager, get_supported_formats
 from ..utils.file_utils import scan_folder_for_media, get_file_size_human
 
+class LinkDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Ajouter un lien")
+        self.setModal(True)
+        self.resize(400, 150)
+        
+        # Layout principal
+        layout = QVBoxLayout()
+        
+        # Champ pour le titre
+        title_layout = QHBoxLayout()
+        title_layout.addWidget(QLabel("Titre:"))
+        self.title_input = QLineEdit()
+        self.title_input.setPlaceholderText("Entrez le titre du lien")
+        title_layout.addWidget(self.title_input)
+        layout.addLayout(title_layout)
+        
+        # Champ pour l'URL
+        url_layout = QHBoxLayout()
+        url_layout.addWidget(QLabel("URL:"))
+        self.url_input = QLineEdit()
+        self.url_input.setPlaceholderText("https://example.com")
+        url_layout.addWidget(self.url_input)
+        layout.addLayout(url_layout)
+        
+        # Boutons OK/Annuler
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+        self.setLayout(layout)
+        
+        # Focus sur le champ titre au démarrage
+        self.title_input.setFocus()
+    
+    def get_link_data(self):
+        """Retourne les données saisies sous forme de dictionnaire"""
+        return {
+            'title': self.title_input.text().strip(),
+            'url': self.url_input.text().strip()
+        }
 
 class MediaListWidget(QListWidget):
     """Widget personnalisé pour afficher la liste des médias"""
@@ -55,7 +100,8 @@ class MediaListWidget(QListWidget):
             placeholder_text = {
                 'documents': "📄 Glissez des documents ici\n(PDF, DOC, TXT, images...)",
                 'audio': "🎵 Glissez des fichiers audio ici\n(MP3, WAV, FLAC...)",
-                'video': "🎬 Glissez des vidéos ici\n(MP4, AVI, MOV...)"
+                'video': "🎬 Glissez des vidéos ici\n(MP4, AVI, MOV...)",
+                'link': "Glissez des liens ici\n(Youtube...)"
             }
             
             placeholder = QListWidgetItem(placeholder_text.get(self.media_type, "Glissez des fichiers ici"))
@@ -87,7 +133,26 @@ class MediaListWidget(QListWidget):
             item.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_MediaPlay))
         
         self.addItem(item)
-    
+
+    def add_link(self, file_path: str):
+        """Ajoute un fichier à la liste"""
+        # Supprimer le placeholder s'il existe
+        if self.count() == 1:
+            item = self.item(0)
+            if not item.flags() & Qt.ItemFlag.ItemIsSelectable:
+                self.clear()
+        
+        # Créer l'élément
+        item_text = f"{file_path}"
+        
+        item = QListWidgetItem(item_text)
+        item.setData(Qt.ItemDataRole.UserRole, file_path)
+        
+        # Icône selon le type
+        item.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_MediaPlay))
+        
+        self.addItem(item)
+
     def remove_selected(self):
         """Supprime les éléments sélectionnés"""
         for item in self.selectedItems():
@@ -96,6 +161,15 @@ class MediaListWidget(QListWidget):
         
         self.update_placeholder()
     
+    def get_links(self) -> List[str]:
+        links = []
+        for i in range(self.count()):
+            item = self.item(i)
+            file_path = item.data(Qt.ItemDataRole.UserRole)
+            if file_path:  # Ignorer le placeholder
+                links.append(file_path)
+        return links
+
     def get_files(self) -> List[Path]:
         """Retourne la liste des fichiers"""
         files = []
@@ -223,6 +297,10 @@ class SongDialog(QDialog):
         self.add_files_button = QPushButton("📁 Ajouter des fichiers")
         self.add_files_button.clicked.connect(self.add_files)
         buttons_layout.addWidget(self.add_files_button)
+
+        self.add_links_button = QPushButton("📁 Ajouter des liens")
+        self.add_links_button.clicked.connect(self.open_link_dialog)
+        buttons_layout.addWidget(self.add_links_button)
         
         self.import_folder_button = QPushButton("📂 Importer un dossier")
         self.import_folder_button.clicked.connect(self.import_folder)
@@ -263,9 +341,17 @@ class SongDialog(QDialog):
         self.video_list.files_dropped.connect(self.on_video_dropped)
         video_layout.addWidget(self.video_list)
         splitter.addWidget(video_group)
+
+        # Liens
+        link_group = QGroupBox("Lien")
+        link_layout = QVBoxLayout(link_group)
+        self.link_list = MediaListWidget('link')
+        self.link_list.files_dropped.connect(self.on_video_dropped)
+        link_layout.addWidget(self.link_list)
+        splitter.addWidget(link_group)
         
         # Répartition égale
-        splitter.setSizes([250, 250, 250])
+        splitter.setSizes([250, 250, 250, 250])
         
         self.tab_widget.addTab(tab, "🎵 Médias")
     
@@ -355,6 +441,9 @@ class SongDialog(QDialog):
         
         for video in self.song.videos:
             self.video_list.add_file(video)
+
+        for link in self.song.links:
+            self.link_list.add_link(link)
         
         # Métadonnées
         for key, value in self.song.metadata.items():
@@ -375,7 +464,8 @@ class SongDialog(QDialog):
         # Vérifier qu'il y a au moins un média
         has_media = (len(self.documents_list.get_files()) > 0 or
                     len(self.audio_list.get_files()) > 0 or
-                    len(self.video_list.get_files()) > 0)
+                    len(self.video_list.get_files()) > 0 or
+                    len(self.link_list.get_links()) > 0)
         
         if not has_media:
             is_valid = False
@@ -397,6 +487,23 @@ class SongDialog(QDialog):
             self.validation_label.setText("⚠️ Titre/Artiste et au moins un média requis")
             self.validation_label.setStyleSheet("color: orange;")
     
+    def open_link_dialog(self):
+        """Ouvre la fenêtre contextuelle pour ajouter un lien"""
+        dialog = LinkDialog(self)
+        
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            link_data = dialog.get_link_data()
+            
+            # Vérification basique
+            if link_data['title'] and link_data['url']:
+                # Ajouter le lien à la liste
+                self.link_list.add_link(link_data['url'])
+                self.validate_form()
+                self.update_validation_status()
+                print(f"Lien ajouté: {link_data['title']} -> {link_data['url']}")
+            else:
+                print("Erreur: Titre et URL sont requis")
+
     def add_files(self):
         """Ouvre un dialog pour ajouter des fichiers"""
         formats = get_supported_formats()
@@ -599,6 +706,7 @@ class SongDialog(QDialog):
         self.song.documents = self.documents_list.get_files()
         self.song.audios = self.audio_list.get_files()
         self.song.videos = self.video_list.get_files()
+        self.song.links = self.link_list.get_links()
         
         # Mettre à jour les métadonnées
         self.song.metadata = self.collect_metadata()
